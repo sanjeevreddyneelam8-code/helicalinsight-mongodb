@@ -38,7 +38,7 @@ def staticDataSources = '''[ {
 def supportedArray = ["Oracle", "Mysql", "Apache Drill", "Microsoft Sqlserver",
                       "Postgresql", "IBM Db2", "Access", "Sqlite", "Teradata", "Mariadb", "Hive", "Informix", "Presto", "Derby", "Dremio",
                       "Snowflake","Elasticsearch","Trino","Google Bigquery","Amazon Dynamodb","Amazon Redshift","Celerdata","Yugabyte",
-                      "Duckdb","Sap Db","Firebirdsql","API","Flatfile","Flatfile csv","Flatfile excel","Flatfile json","Flatfile aws","Flatfile Google spreadsheet","Flatfile parquet","Flatfile azure blobstorage" ,"Flatfile cloudfare r2","Flatfile GCS","Flatfile tsv","Athena","Ξ Add Driver Ξ"]
+                      "Duckdb","Sap Db","Firebirdsql","Mongodb","API","Flatfile","Flatfile csv","Flatfile excel","Flatfile json","Flatfile aws","Flatfile Google spreadsheet","Flatfile parquet","Flatfile azure blobstorage" ,"Flatfile cloudfare r2","Flatfile GCS","Flatfile tsv","Athena","Ξ Add Driver Ξ"]
 
 def virtualStaticDs = '''{
 "name": "Virtual Datasource",
@@ -182,6 +182,14 @@ driverListArray.each {
             modelJson.categoryName = "Big Data"
             modelJson.categoryType = "big_data"
 
+        } else if (findDbName.equalsIgnoreCase("Mongodb") || findDbName.equalsIgnoreCase("Helical Mongodb")) {
+            modelJson.name = "Mongodb"
+            findDbName = "Mongodb"
+            modelJson.categoryName = "No SQL & Big Data"
+            modelJson.categoryType = "nosql_bigdata"
+            modelJson.type = "global.jdbc"
+            modelJson.dataSourceProvider = "tomcat"
+
         } else if (Pattern.compile(Pattern.quote(modifiedMiddlewareName), Pattern.CASE_INSENSITIVE).matcher(findDbName).find()) {
             modelJson.categoryName = "Flat Files"
             modelJson.categoryType = "flat_files"
@@ -238,7 +246,7 @@ def prepareDbName(driverName) {
                 || lowerIt == "net" || lowerIt == "sf" || lowerIt == "jtds" || lowerIt == "jcc"
                 || lowerIt == "facebook"||lowerIt=="cdata"||lowerIt=="amazondynomodb"||lowerIt=="simba"
                 ||lowerIt=="jdbc42" ||lowerIt=="ru"  || lowerIt=="yandex" || lowerIt=="jdbc42" ||lowerIt=="xpack"
-                || lowerIt=="sql" || lowerIt=="io" || lowerIt=="client" || lowerIt=="iapi") )
+                || lowerIt=="sql" || lowerIt=="io" || lowerIt=="client" || lowerIt=="iapi" || lowerIt=="helical") )
         {
             if (it.contains("ucan")) {
                 possibleName += it.replace("ucanaccess", "Access")

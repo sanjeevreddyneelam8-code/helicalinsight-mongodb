@@ -1,0 +1,3 @@
+com.helical.mongodb.MongoJdbcDriver
+com.mongodb.jdbc.MongoDriver
+mongodb.jdbc.MongoDriver
