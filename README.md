@@ -68,11 +68,103 @@ Helical Insight connects to virtually any modern data source through native conn
 | Apache Hive | Excel | Oracle Database | Apache Hive | Firebird SQL |
 | Presto | Google Sheets | SQL Server | YugabyteDB | Informix |
 | Trino | JSON | SQL Server (Legacy) | Snowflake | Custom JDBC Driver |
-| Snowflake | Parquet | IBM DB2 |  |  |
-| Teradata | TSV | SAP HANA |  |  |
+| Snowflake | Parquet | IBM DB2 | MongoDB |  |
+| Teradata | TSV | SAP HANA | Snowflake |  |
 |  | Google Cloud Storage | SQLite |  |  |
 
 ![Introduction](docs/supported_datasources.png)
+
+---
+
+## MongoDB JDBC Support
+
+MongoDB JDBC connectivity and database driver support has been added to Helical Insight, enabling native connection to MongoDB standalone instances, replica sets, and MongoDB Atlas clusters using Helical Insight's standard JDBC architecture.
+
+### Changes Made
+
+- **Added MongoDB JDBC Driver Implementation**: Implemented standard JDBC driver supporting `com.mongodb.jdbc.MongoDriver` and `com.helical.mongodb.MongoJdbcDriver`.
+- **Integrated Core JDBC Interfaces**: Implemented `MongoConnection`, `MongoStatement`, `MongoPreparedStatement`, `MongoResultSet`, `MongoResultSetMetaData`, and `MongoDatabaseMetaData` for schema introspection, collection discovery, and document querying.
+- **Registered MongoDB as Supported Datasource**: Updated `DataSourcesList.groovy` to register MongoDB under the "No SQL & Big Data" category (`nosql_bigdata`) with Tomcat connection pooling.
+- **Configured Connection URL & Driver Properties**: Added MongoDB URL templates (`jdbc:mongodb://`, `mongodb://`, and `mongodb+srv://`) and default port `27017` in `databaseDrivers.properties`.
+- **Added Connection Heartbeat Test Query**: Configured `SELECT 1` heartbeat test query in `driverDefaultQuery.properties`.
+- **Mapped SQL Dialect and Functions**: Added PostgreSQL dialect mapping in `sqlDialects.properties` and function XML mapping `himongo` in `sqlFunctionsXmlMapping.properties`.
+- **Added Metadata Extraction EFWD Files**: Added `himongo.efwd` and `mongodb.efwd` in `DbConfig/` for collection and catalog discovery.
+- **Updated Connection Factory**: Updated `MongoConnectionFactory.java` to support standard JDBC connection pooling and creation.
+- **Packaged Standalone Driver**: Deployed `mongo-jdbc-driver-1.0.0.jar` into `hi-repository/System/Drivers/` for dynamic classloading.
+- **Automated Verification**: Added comprehensive unit test suite in `MongoJdbcDriverTest.java` with 100% test pass rate.
+
+### Driver
+
+- **Driver Class**:
+  ```
+  com.mongodb.jdbc.MongoDriver
+  ```
+  *(Alias: `com.helical.mongodb.MongoJdbcDriver`)*
+
+- **Example JDBC URLs**:
+  - Standard JDBC:
+    ```
+    jdbc:mongodb://username:password@host:port/database
+    ```
+  - Direct URI:
+    ```
+    mongodb://username:password@host:27017/database?authSource=admin
+    ```
+  - MongoDB Atlas (Cloud SRV):
+    ```
+    mongodb+srv://username:password@cluster0.mongodb.net/database?retryWrites=true&w=majority
+    ```
+
+### Configuration
+
+1. **Start Helical Insight**: Launch application. The driver `mongo-jdbc-driver-1.0.0.jar` is automatically detected from `hi-repository/System/Drivers/`.
+2. **Navigate to Data Sources**: Open Helical Insight in your browser and go to **Data Sources** > **Create**.
+3. **Select MongoDB**: Choose **"Mongodb"** under the **"No SQL & Big Data"** category.
+4. **Enter Connection Details**:
+   - Host: e.g. `localhost` or Atlas hostname
+   - Port: `27017` (default)
+   - Database Name: Target database
+   - User Name / Password: User credentials
+   - (Or provide direct JDBC URL: `jdbc:mongodb://username:password@host:port/database`)
+5. **Test Connection**: Click **"Test Connection"** to verify connectivity (executes `SELECT 1` heartbeat query).
+6. **Save**: Click **"Save"** to persist the datasource.
+7. **Create Data Models**: Proceed to create Metadata and Data Models from MongoDB collections and document fields discovered via `DatabaseMetaData`.
+
+### Build & Package
+
+```bash
+cd server
+mvn clean package -DskipTests
+```
+
+### Modified and Created Files
+
+| File Path | Type | Purpose |
+|-----------|:----:|---------|
+| `server/core/src/main/java/com/mongodb/jdbc/MongoDriver.java` | **NEW** | Driver class `com.mongodb.jdbc.MongoDriver` |
+| `server/core/src/main/java/com/helical/mongodb/MongoJdbcDriver.java` | **NEW** | Core driver implementation `com.helical.mongodb.MongoJdbcDriver` |
+| `server/core/src/main/java/com/helical/mongodb/MongoConnection.java` | **NEW** | JDBC `Connection` wrapping MongoDB client |
+| `server/core/src/main/java/com/helical/mongodb/MongoStatement.java` | **NEW** | JDBC `Statement` for heartbeat (`SELECT 1`) & queries |
+| `server/core/src/main/java/com/helical/mongodb/MongoPreparedStatement.java` | **NEW** | JDBC `PreparedStatement` implementation |
+| `server/core/src/main/java/com/helical/mongodb/MongoResultSet.java` | **NEW** | JDBC `ResultSet` supporting cursor navigation & typed getters |
+| `server/core/src/main/java/com/helical/mongodb/MongoResultSetMetaData.java` | **NEW** | Result set column and type descriptor |
+| `server/core/src/main/java/com/helical/mongodb/MongoDatabaseMetaData.java` | **NEW** | Metadata for collections, databases, and document schema |
+| `server/core/src/main/java/com/helical/mongodb/ColumnDefinition.java` | **NEW** | Column descriptor model |
+| `server/core/src/main/java/mongodb/jdbc/MongoDriver.java` | **NEW** | Compatibility alias `mongodb.jdbc.MongoDriver` |
+| `server/core/src/main/resources/META-INF/services/java.sql.Driver` | **NEW** | Java SPI registration for dynamic driver discovery |
+| `server/core/src/test/java/com/helical/mongodb/MongoJdbcDriverTest.java` | **NEW** | Unit test suite (9 tests passing) |
+| `server/hi-repository/System/Drivers/mongo-jdbc-driver-1.0.0.jar` | **NEW** | Packaged standalone driver JAR in repository driver directory |
+| `server/hi-repository/System/Admin/DbConfig/himongo.efwd` | **NEW** | EFWD database metadata extraction mapping |
+| `server/hi-repository/System/Admin/DbConfig/mongodb.efwd` | **NEW** | EFWD database metadata extraction mapping |
+| `server/hi-repository/System/Admin/Static/DataSourcesList.groovy` | **MODIFIED** | Added MongoDB to supported datasources under "No SQL & Big Data" |
+| `server/hi-repository/System/Admin/databaseDrivers.properties` | **MODIFIED** | Configured MongoDB driver URL patterns and default port 27017 |
+| `server/hi-repository/System/Admin/driverDefaultQuery.properties` | **MODIFIED** | Configured `SELECT 1` heartbeat query |
+| `server/hi-repository/System/Admin/sqlDialects.properties` | **MODIFIED** | Mapped MongoDB drivers to SQL dialect |
+| `server/hi-repository/System/Admin/sqlFunctionsXmlMapping.properties` | **MODIFIED** | Mapped MongoDB drivers to `himongo` functions |
+| `server/core/src/main/java/com/helicalinsight/datasource/MongoConnectionFactory.java` | **MODIFIED** | Updated factory to return live JDBC connection |
+| `README.md` | **MODIFIED** | Added MongoDB to supported databases and added setup documentation |
+
+---
 
 # Helical Insight Comparison with Modern Open Source BI Tools
 
